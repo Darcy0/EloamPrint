@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/EloamPrint">
+        <file>Resources/pic/print.png</file>
+        <file>Resources/pic/close.png</file>
+        <file>Resources/pic/cut.png</file>
+        <file>Resources/pic/DnBar_scan.png</file>
+        <file>Resources/pic/paramset.png</file>
+        <file>Resources/pic/pB_Cut.png</file>
+        <file>Resources/pic/printpreview.png</file>
+        <file>Resources/pic/pB_Scrn.png</file>
+    </qresource>
+</RCC>
