@@ -18,7 +18,7 @@
 #include "atlconv.h"
 #include<tchar.h>
 #include<Windows.h>
-#include "eloamprint.h"
+#include "EloamPrint.h"
 #include "language\language.h"
 #include  <qfileinfo.h>
 #include <qmessagebox.h>

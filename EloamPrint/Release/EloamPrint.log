@@ -1,51 +1,17 @@
-﻿生成启动时间为 2018/3/22 16:31:27。
+﻿生成启动时间为 2018/3/26 15:13:33。
      1>项目“E:\work\EloamPrint\EloamPrint\EloamPrint.vcxproj”在节点 2 上(build 个目标)。
      1>InitializeBuildStatus:
          正在创建“Release\EloamPrint.unsuccessfulbuild”，因为已指定“AlwaysCreate”。
        CustomBuild:
-         Moc'ing eloamprint.h...
-         Rcc'ing eloamprint.qrc...
-         Uic'ing eloamprint.ui...
-     1>E:\work\EloamPrint\EloamPrint\eloamprint.ui : warning : Z-order assignment: 'layoutWidget' is not a valid widget.
-     1>E:\work\EloamPrint\EloamPrint\eloamprint.ui : warning : Z-order assignment: 'layoutWidget' is not a valid widget.
-     1>E:\work\EloamPrint\EloamPrint\eloamprint.ui : warning : Z-order assignment: 'layoutWidget' is not a valid widget.
-     1>E:\work\EloamPrint\EloamPrint\eloamprint.ui : warning : Z-order assignment: 'layoutWidget' is not a valid widget.
-     1>E:\work\EloamPrint\EloamPrint\eloamprint.ui : warning : Z-order assignment: 'layoutWidget' is not a valid widget.
-     1>E:\work\EloamPrint\EloamPrint\eloamprint.ui : warning : Z-order assignment: 'layoutWidget' is not a valid widget.
-     1>E:\work\EloamPrint\EloamPrint\eloamprint.ui : warning : Z-order assignment: 'layoutWidget' is not a valid widget.
-     1>E:\work\EloamPrint\EloamPrint\eloamprint.ui : warning : Z-order assignment: 'horizontalSpacer' is not a valid widget.
-         Uic'ing PrintConfigDlg.ui...
+         所有输出均为最新。
        ClCompile:
-         D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /I.\GeneratedFiles /I. /ID:\Qt\Qt5.2.0\5.2.0\msvc2010_opengl\include /I.\GeneratedFiles\Release /ID:\Qt\Qt5.2.0\5.2.0\msvc2010_opengl\include\QtCore /ID:\Qt\Qt5.2.0\5.2.0\msvc2010_opengl\include\QtGui /ID:\Qt\Qt5.2.0\5.2.0\msvc2010_opengl\include\QtWidgets /Zi /nologo /W1 /WX- /Od /Oy- /D UNICODE /D WIN32 /D WIN64 /D QT_DLL /D NDEBUG /D QT_CORE_LIB /D QT_GUI_LIB /D QT_WIDGETS_LIB /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt eloamprint.cpp GeneratedFiles\Release\moc_eloamprint.cpp language\language.cpp language\tinystr.cpp language\tinyxml.cpp language\tinyxmlerror.cpp language\tinyxmlparser.cpp main.cpp
-         eloamprint.cpp
-         moc_eloamprint.cpp
-         language.cpp
-     1>language\language.cpp(189): warning C4172: 返回局部变量或临时变量的地址
-     1>language\language.cpp(204): warning C4172: 返回局部变量或临时变量的地址
-         tinystr.cpp
-         tinyxml.cpp
-         tinyxmlerror.cpp
-         tinyxmlparser.cpp
-         main.cpp
-         正在生成代码...
-         D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /I.\GeneratedFiles /I. /ID:\Qt\Qt5.2.0\5.2.0\msvc2010_opengl\include /I.\GeneratedFiles\Release /ID:\Qt\Qt5.2.0\5.2.0\msvc2010_opengl\include\QtCore /ID:\Qt\Qt5.2.0\5.2.0\msvc2010_opengl\include\QtGui /ID:\Qt\Qt5.2.0\5.2.0\msvc2010_opengl\include\QtWidgets /Zi /nologo /W1 /WX- /Od /Oy- /D UNICODE /D WIN32 /D WIN64 /D QT_DLL /D NDEBUG /D QT_CORE_LIB /D QT_GUI_LIB /D QT_WIDGETS_LIB /D _UNICODE /D UNICODE /Gm- /EHsc /MD /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Release\\" /Fd"Release\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt GeneratedFiles\qrc_eloamprint.cpp
-         qrc_eloamprint.cpp
+         所有输出均为最新。
+         所有输出均为最新。
        ResourceCompile:
-         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\rc.exe /D _UNICODE /D UNICODE /l"0x0409" /nologo /fo"Release\EloamPrint.res" EloamPrint.rc 
+         所有输出均为最新。
        Link:
-         D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"E:\work\EloamPrint\Win32\Release\\EloamPrint.exe" /NOLOGO /LIBPATH:D:\Qt\Qt5.2.0\5.2.0\msvc2010_opengl\lib qtmain.lib Qt5Core.lib Qt5Gui.lib Qt5Multimedia.lib Qt5MultimediaWidgets.lib Qt5Qml.lib Qt5Quick.lib Qt5Sql.lib Qt5Test.lib Qt5WebKit.lib Qt5AxContainer.lib Qt5AxBase.lib Qt5Help.lib Qt5OpenGL.lib opengl32.lib glu32.lib Qt5PrintSupport.lib Qt5Script.lib Qt5Sensors.lib Qt5Svg.lib Qt5WebkitWidgets.lib Qt5Widgets.lib Qt5Xml.lib Qt5XmlPatterns.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Release\EloamPrint.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /PDB:"E:\work\EloamPrint\Win32\Release\EloamPrint.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\work\EloamPrint\Win32\Release\EloamPrint.lib" /MACHINE:X86 Release\EloamPrint.res
-         Release\eloamprint.obj
-         Release\qrc_eloamprint.obj
-         Release\moc_eloamprint.obj
-         Release\language.obj
-         Release\tinystr.obj
-         Release\tinyxml.obj
-         Release\tinyxmlerror.obj
-         Release\tinyxmlparser.obj
-         Release\main.obj
+         所有输出均为最新。
          EloamPrint.vcxproj -> E:\work\EloamPrint\Win32\Release\EloamPrint.exe
-       Manifest:
-         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"E:\work\EloamPrint\Win32\Release\\EloamPrint.exe;#1" /manifest Release\EloamPrint.exe.intermediate.manifest
        FinalizeBuildStatus:
          正在删除文件“Release\EloamPrint.unsuccessfulbuild”。
          正在对“Release\EloamPrint.lastbuildstate”执行 Touch 任务。
@@ -53,4 +19,4 @@
 
 生成成功。
 
-已用时间 00:00:07.13
+已用时间 00:00:00.04

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>eloamprint</class>
- <widget class="QWidget" name="eloamprint">
+ <class>EloamPrint</class>
+ <widget class="QWidget" name="EloamPrint">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -482,15 +482,6 @@
     </layout>
    </item>
   </layout>
-  <zorder>W_PrintVideoDlg</zorder>
-  <zorder>layoutWidget</zorder>
-  <zorder>layoutWidget</zorder>
-  <zorder>layoutWidget</zorder>
-  <zorder>layoutWidget</zorder>
-  <zorder>layoutWidget</zorder>
-  <zorder>layoutWidget</zorder>
-  <zorder>layoutWidget</zorder>
-  <zorder>horizontalSpacer</zorder>
  </widget>
  <tabstops>
   <tabstop>listWidget_forPrintThumb</tabstop>

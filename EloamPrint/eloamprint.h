@@ -158,7 +158,7 @@ public slots:
 	void setThresholdValue(int Value);
 	void setExposureValue(int Value);
 private:
-	Ui::eloamprint ui;
+	Ui::EloamPrint ui;
 	void closeEvent(QCloseEvent *event);
 };
 

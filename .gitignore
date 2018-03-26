@@ -25,6 +25,7 @@ ipch/
 
 # Compile files
 *.obj
+*.log
 *.tlog
 *.manifest
 *.lastbuildstate
