@@ -29,7 +29,7 @@
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_8" stretch="20,1">
        <item>
-        <widget class="QWidget" name="W_PrintVideoDlg" native="true">
+        <widget class="QWidget" name="widget_VideoDlg" native="true">
          <property name="styleSheet">
           <string notr="true">background-color: rgb(255, 255, 255);</string>
          </property>
@@ -42,7 +42,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout">
              <item>
-              <widget class="QPushButton" name="pB_Memu">
+              <widget class="QPushButton" name="pushButton_Config">
                <property name="minimumSize">
                 <size>
                  <width>40</width>
@@ -101,7 +101,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_10">
              <item>
-              <widget class="QPushButton" name="pB_Cut">
+              <widget class="QPushButton" name="pushButton_Cut">
                <property name="minimumSize">
                 <size>
                  <width>40</width>
@@ -127,7 +127,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_11">
              <item>
-              <widget class="QLabel" name="label_cut">
+              <widget class="QLabel" name="label_Cut">
                <property name="minimumSize">
                 <size>
                  <width>80</width>
@@ -170,7 +170,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_4">
              <item>
-              <widget class="QLabel" name="label_3">
+              <widget class="QLabel" name="label_Threshold">
                <property name="minimumSize">
                 <size>
                  <width>120</width>
@@ -192,7 +192,7 @@
               </widget>
              </item>
              <item>
-              <widget class="QSlider" name="m_ThresholdSlider">
+              <widget class="QSlider" name="slider_Threshold">
                <property name="minimumSize">
                 <size>
                  <width>60</width>
@@ -281,7 +281,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_8">
              <item>
-              <widget class="QPushButton" name="pB_ScanPrint">
+              <widget class="QPushButton" name="pushButton_Capture">
                <property name="minimumSize">
                 <size>
                  <width>40</width>
@@ -307,7 +307,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_9">
              <item>
-              <widget class="QLabel" name="label_Scan">
+              <widget class="QLabel" name="label_Capture">
                <property name="minimumSize">
                 <size>
                  <width>90</width>
@@ -337,7 +337,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_5">
              <item>
-              <widget class="QPushButton" name="pB_switchView">
+              <widget class="QPushButton" name="pushButton_SwitchView">
                <property name="minimumSize">
                 <size>
                  <width>40</width>
@@ -363,7 +363,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_12">
              <item>
-              <widget class="QLabel" name="label_PreView">
+              <widget class="QLabel" name="label_SwitchView">
                <property name="minimumSize">
                 <size>
                  <width>90</width>
@@ -393,7 +393,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_6">
              <item>
-              <widget class="QPushButton" name="pB_Print">
+              <widget class="QPushButton" name="pushButton_Print">
                <property name="minimumSize">
                 <size>
                  <width>40</width>
@@ -451,7 +451,7 @@
      <item>
       <layout class="QVBoxLayout" name="verticalLayout_2" stretch="20,1">
        <item>
-        <widget class="QListWidget" name="listWidget_forPrintThumb">
+        <widget class="QListWidget" name="listWidget_Thumbnail">
          <property name="maximumSize">
           <size>
            <width>200</width>
@@ -466,7 +466,7 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_2">
          <item>
-          <widget class="QCheckBox" name="cB_SelectAll">
+          <widget class="QCheckBox" name="checkBox_SelectAll">
            <property name="layoutDirection">
             <enum>Qt::LeftToRight</enum>
            </property>
@@ -484,7 +484,7 @@
   </layout>
  </widget>
  <tabstops>
-  <tabstop>listWidget_forPrintThumb</tabstop>
+  <tabstop>listWidget_Thumbnail</tabstop>
  </tabstops>
  <resources>
   <include location="eloamprint.qrc"/>

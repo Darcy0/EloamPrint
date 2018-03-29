@@ -68,6 +68,18 @@
     <ClCompile Include="EloamPrint.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PrintConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Debug\moc_PrintConfig.cpp">
+      <Filter>Generated Files\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="GeneratedFiles\Release\moc_PrintConfig.cpp">
+      <Filter>Generated Files\Release</Filter>
+    </ClCompile>
+    <ClCompile Include="translate.cpp">
+      <Filter>language</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="eloamprint.qrc">
@@ -76,11 +88,14 @@
     <CustomBuild Include="EloamPrint.ui">
       <Filter>Form Files</Filter>
     </CustomBuild>
-    <CustomBuild Include="PrintConfigDlg.ui">
-      <Filter>Form Files</Filter>
-    </CustomBuild>
     <CustomBuild Include="EloamPrint.h">
       <Filter>Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="PrintConfig.h">
+      <Filter>Header Files</Filter>
+    </CustomBuild>
+    <CustomBuild Include="PrintConfig.ui">
+      <Filter>Form Files</Filter>
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
@@ -96,8 +111,11 @@
     <ClInclude Include="GeneratedFiles\ui_EloamPrint.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
-    <ClInclude Include="GeneratedFiles\ui_PrintConfigDlg.h">
+    <ClInclude Include="GeneratedFiles\ui_PrintConfig.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="translate.h">
+      <Filter>language</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

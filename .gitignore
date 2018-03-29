@@ -27,6 +27,7 @@ ipch/
 *.obj
 *.log
 *.tlog
+*.log
 *.manifest
 *.lastbuildstate
 *.res
