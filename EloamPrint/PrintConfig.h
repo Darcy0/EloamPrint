@@ -42,7 +42,7 @@ signals:
 	//恢复默认定标参数信号，点击“恢复默认”按钮时发出
 	void StandardizationRestore();
 	//标定信号，点击“标定”按钮时发出
-	void StandardizationCheckDPI(CalibrationCard size);
+	void StandardizationCheckDPI(CalibrationCard size,bool isDeskew);
 public:
 	PrintConfig(QWidget *parent = 0);
 	~PrintConfig();

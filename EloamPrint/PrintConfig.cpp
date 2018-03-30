@@ -170,7 +170,8 @@ void PrintConfig::onCheckDPI()
 	{
 		calibrationCard=CalibrationCardA5;
 	}
-	emit StandardizationCheckDPI(calibrationCard);
+	bool isDeskew=ui.radioButton_Deskew->isChecked();
+	emit StandardizationCheckDPI(calibrationCard,isDeskew);
 }
 
 void PrintConfig::onRestore()

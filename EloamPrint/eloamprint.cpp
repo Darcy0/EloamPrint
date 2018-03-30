@@ -26,6 +26,7 @@
 #include <qdatetime.h>
 HWND g_hParent = NULL;
 EloamPrint * g_TheDilgAPP = NULL;
+
 #define FILE_EXISTS(FILE_NAME) ((0xFFFFFFFF==GetFileAttributes(FILE_NAME))?FALSE:TRUE)
 
 EloamPrint::EloamPrint(QWidget *parent)
@@ -34,15 +35,12 @@ EloamPrint::EloamPrint(QWidget *parent)
 	,m_hMainVideo(NULL)
 	,m_hCutRect(NULL)
 	,m_hCutImage(NULL)
-	,m_IDCardFirstImage(NULL)
-	,m_PrintView(NULL)
+	,m_hMainView(NULL)
 	,m_hPrintImage(NULL)
-	,m_hPrintView(NULL)
 	,m_hThumbPrint(NULL)
 	,m_hIDCardCombine(NULL)				//二代证合成图片句柄
 	,m_hImageReverse(NULL)
 	,m_hShowResultImage(NULL)
-	,m_hShowResultImageA(NULL)
 	,m_nThresholdValue(40)
 	,m_A3DefDpi(0)
 	,m_A4DefDpi(0)
@@ -50,25 +48,35 @@ EloamPrint::EloamPrint(QWidget *parent)
 	,m_A4Height(0)
 	,m_A3Width(0)
 	,m_A3Height(0)
-	,m_bIsShowA(false)
 	,m_bIsVideoView(true)
 	,m_ischangeDPI(0)					
 {
 	g_TheDilgAPP = this;
 	ui.setupUi(this);
+	this->setMouseTracking(true);
 	SetButtonStyle();	//设置按钮样式
 	SetLanguage();		//国际化界面语言
-	m_CurBinPath = QCoreApplication::applicationDirPath();	
-	ReadConfig();		//读取配置参数
+	//默认二值化阈值、裁剪不可见
+	ui.label_Threshold->setVisible(false);
+	ui.slider_Threshold->setVisible(false);
+	ui.spinBox_Threshold->setVisible(false);
+	ui.pushButton_Cut->setVisible(false);
+	ui.label_Cut->setVisible(false);
 	
+	ReadConfig();//读取配置参数
+	
+	//设置二值化阈值
+	ui.slider_Threshold->setValue(m_nThresholdValue);
+	ui.spinBox_Threshold->setValue(m_nThresholdValue);
+
+	//设置界面初始化
 	m_printConfigUi=new PrintConfig(this);
 	m_printConfigUi->SetConfigParam(m_printConfigParam);
 	connect(m_printConfigUi,SIGNAL(newPrintConfigParm(QVariant&)),this,SLOT(onNewPrintConfig(QVariant&)));
 	connect(m_printConfigUi,SIGNAL(StandardizationRestore()),this,SLOT(onStandardizationRestore()));
-	connect(m_printConfigUi,SIGNAL(StandardizationCheckDPI(CalibrationCard)),this,SLOT(onStandardizationCheckDPI(CalibrationCard)));
+	connect(m_printConfigUi,SIGNAL(StandardizationCheckDPI(CalibrationCard,bool)),this,SLOT(onStandardizationCheckDPI(CalibrationCard,bool)));
 
-	
-	m_vMainDevice.clear();	
+	//创建设置缩略图区域
 	m_hThumbPrint = EloamGlobal_CreateThumbnail((HWND)ui.listWidget_Thumbnail->winId(),0, 1);
 	EloamThumbnail_SetMenuItem(m_hThumbPrint, THUMBNAIL_MENU_NULL, 0x01);
 	EloamThumbnail_SetMenuItem(m_hThumbPrint, THUMBNAIL_MENU_FILE, THUMBNAIL_ITEM_OPENFILEPOS | THUMBNAIL_ITEM_BLEND
@@ -81,39 +89,18 @@ EloamPrint::EloamPrint(QWidget *parent)
 	else if(m_bLanguageIndex == 1)
 	{
 		EloamThumbnail_SetLanguage(m_hThumbPrint, 3);
-	}
-	
+	}	
+
 	//创建视频窗口
-	m_hPrintView  = (HWND)ui.widget_VideoDlg->winId();
-	m_PrintView = EloamGlobal_CreateView(m_hPrintView ,NULL,0);
+	m_vDevices.clear();	
+	HWND videoDlgHwnd  = (HWND)ui.widget_VideoDlg->winId();
+	m_hMainView = EloamGlobal_CreateView(videoDlgHwnd ,NULL,0);
 	EloamGlobal_InitDevs(DevChangeCallback,this);
-	if(m_vMainDevice.size()>0)
+	if (NULL==m_hMainDev)
 	{
-		for(int i = 0;i< m_vMainDevice.size();i++)
-		{	
-			if(1 == EloamDevice_GetEloamType( m_vMainDevice[i]))
-			{
-				m_hMainDev = m_vMainDevice[i];
-			}
-		}		
+		EloamView_SetText(m_hMainView, L"没有输入信号...", RGB(255, 255, 255));
 	}
-	else
-	{
-		m_hMainDev = NULL;
-		EloamView_SetText(m_PrintView, L"未检测到设备", RGB(255, 255, 255));
-
-	}
-	this->setMouseTracking ( true);
-
-	ui.slider_Threshold->setValue(m_nThresholdValue);
-	ui.spinBox_Threshold->setValue(m_nThresholdValue);
-	ui.slider_Threshold->setVisible(false);
-	ui.spinBox_Threshold->setVisible(false);
-	ui.label_Threshold->setVisible(false);
-	ui.pushButton_Cut->setVisible(false);
-	ui.label_Cut->setText("");
-	ui.label_kongbai->setVisible(false);
-
+	//连接信号槽
 	connect(ui.pushButton_Config, SIGNAL(clicked()), this, SLOT(OnConfigDlg()));//设置
 	connect(ui.pushButton_Cut, SIGNAL(clicked()), this, SLOT(OnCut()));//启动裁剪
 	connect(ui.pushButton_Capture, SIGNAL(clicked()), this, SLOT(OnCapture()));//拍照
@@ -122,8 +109,9 @@ EloamPrint::EloamPrint(QWidget *parent)
 	connect(ui.checkBox_SelectAll,SIGNAL(clicked()),this,SLOT(OnCbSelectAll()));//图片全选
 	connect(ui.slider_Threshold, SIGNAL(valueChanged(int)), ui.spinBox_Threshold, SLOT(setValue(int)));
 	connect(ui.spinBox_Threshold, SIGNAL(valueChanged(int)),ui.slider_Threshold, SLOT(setValue(int)));
-	connect(ui.slider_Threshold, SIGNAL(valueChanged(int)),this, SLOT(setThresholdValue(int)));
-	connect(ui.spinBox_Threshold, SIGNAL(valueChanged(int)),this, SLOT(setThresholdValue(int)));
+	connect(ui.slider_Threshold, SIGNAL(valueChanged(int)),this, SLOT(OnThresholdValueChanged(int)));
+	connect(ui.spinBox_Threshold, SIGNAL(valueChanged(int)),this, SLOT(OnThresholdValueChanged(int)));
+	
 	if(!m_ischangeDPI)
 	{
 		m_fCurXDpi = m_A4DefDpi;
@@ -147,11 +135,6 @@ EloamPrint::~EloamPrint()
 		EloamImage_Release(m_hShowResultImage);
 		m_hShowResultImage = NULL;
 	}
-	if ( NULL != m_hShowResultImageA)//用于显示二值化效果的图片对象a
-	{
-		EloamImage_Release(m_hShowResultImageA);
-		m_hShowResultImageA = NULL;
-	}
 
 	if ( NULL != m_hImageReverse)//打印窗口的图片句柄
 	{
@@ -163,11 +146,6 @@ EloamPrint::~EloamPrint()
 	{
 		EloamImage_Release(m_hIDCardCombine);
 		m_hPrintImage = NULL;
-	}
-	if ( NULL != m_IDCardFirstImage)//二代证合成的第一张图片
-	{
-		EloamImage_Release(m_IDCardFirstImage);
-		m_IDCardFirstImage = NULL;
 	}
 	if ( NULL != m_hCutRect)//二代证合成的第一张图片
 	{
@@ -184,18 +162,18 @@ EloamPrint::~EloamPrint()
 		EloamVideo_Release(m_hMainVideo);
 		m_hMainVideo = NULL;
 	}
-	if(m_PrintView)
+	if(m_hMainView)
 	{
-		EloamView_Release(m_PrintView);
-		m_PrintView = NULL;
+		EloamView_Release(m_hMainView);
+		m_hMainView = NULL;
 	}
-	int size = m_vMainDevice.size();
+	int size = m_vDevices.size();
 	for (int i = 0; i < size; i++)
 	{
-		HELOAMDEVICE hDev = m_vMainDevice[i];
+		HELOAMDEVICE hDev = m_vDevices[i];
 		EloamDevice_Release(hDev);
 	}
-	m_vMainDevice.clear();
+	m_vDevices.clear();
 	EloamGlobal_DeinitDevs();
 	WriteConfig();
 }
@@ -261,11 +239,11 @@ void EloamPrint::SetButtonStyle()
 
 void  EloamPrint::ReadConfig()
 {
-	QString configPath = m_CurBinPath + QString::fromLocal8Bit("/QDilgCameraConfig.ini");
+	QString configPath = QCoreApplication::applicationDirPath() + QString::fromLocal8Bit("/QDilgCameraConfig.ini");
 	QFile file(configPath);
 	if(file.exists())
 	{
-		QString strDefImageSavePath=m_CurBinPath + QString::fromLocal8Bit("/image");
+		QString strDefImageSavePath=QCoreApplication::applicationDirPath() + QString::fromLocal8Bit("/image");
 		std::string strDef = strDefImageSavePath.toStdString(); //将QString转换为string
 		std::wstring wstrDef(strDef.length(), L' ');//初始化宽字节wstr
 		std::copy(strDef.begin(), strDef.end(), wstrDef.begin());//将str复制到wstr
@@ -328,7 +306,7 @@ void  EloamPrint::ReadConfig()
 
 void  EloamPrint::WriteConfig()
 {
-	QString configPath = m_CurBinPath + QString::fromLocal8Bit("/QDilgCameraConfig.ini");
+	QString configPath = QCoreApplication::applicationDirPath() + QString::fromLocal8Bit("/QDilgCameraConfig.ini");
 	QFile file(configPath);
 	if(!file.exists())
 	{
@@ -496,9 +474,9 @@ void EloamPrint::InitExposure()
 
 void EloamPrint::OpenVideo()
 {		
-	for(int i = 0;i< m_vMainDevice.size();i++)
+	for(int i = 0;i< m_vDevices.size();i++)
 	{	
-		HELOAMDEVICE hDev = m_vMainDevice[i];
+		HELOAMDEVICE hDev = m_vDevices[i];
 		if(1 == EloamDevice_GetEloamType(hDev))//获取摄像头类型，1:主摄像头，2、3:副摄像头，-1失败
 		{	
 			int subType = EloamDevice_GetSubtype(hDev);//1:支持YUY2格式、2:支持MJPG格式、3支持YUY2、MJPG格式
@@ -510,24 +488,12 @@ void EloamPrint::OpenVideo()
 			m_hMainVideo = EloamDevice_CreateVideo(hDev, 0, type, ArivlaCallback, NULL, EloamTouchCallback, this);
 			if (m_hMainVideo) 
 			{
-				EloamView_SelectVideo(m_PrintView, m_hMainVideo, AttachCallback, this);  
-				EloamView_SetText(m_PrintView, L"打开视频中，请等待...", RGB(255, 255, 255));
-				EloamView_SetCallback(m_PrintView, ZoomChange, this);					
-				m_bIsLostDev =false;
-				devFlag=100;
+				EloamView_SelectVideo(m_hMainView, m_hMainVideo, AttachCallback, this);  
+				EloamView_SetText(m_hMainView, L"打开视频中，请等待...", RGB(255, 255, 255));
+				EloamView_SetCallback(m_hMainView, ZoomChange, this);					
 				break;
 			}			
 		}
-	}	
-}
-
-void EloamPrint::OnCloseDevice()
-{
-	EloamView_SetText(m_PrintView, NULL, 0);
-	if(m_hMainVideo)
-	{
-		EloamVideo_Release(m_hMainVideo);
-		m_hMainVideo = NULL;
 	}	
 }
 
@@ -550,11 +516,6 @@ void EloamPrint::ReversePrintImage(HELOAMIMAGE m_hPrintImage)
 	int w1 = EloamImage_GetWidth(m_hPrintImage);
 	int h1 = EloamImage_GetHeight(m_hPrintImage);
 	bool bResize = EloamImage_Resize(m_hPrintImage,w1/1.038,h1/1.038,0);
-	if(bResize)
-	{
-		w1 = EloamImage_GetWidth(m_hPrintImage);
-		h1 = EloamImage_GetHeight(m_hPrintImage);
-	}
 	if (m_hImageReverse)
 	{
 		EloamImage_SetXDPI(m_hImageReverse,m_fCurXDpi);
@@ -574,253 +535,20 @@ void EloamPrint::OnStopPrint()
 	//m_bDeleteBk = false;
 	EloamVideo_DisableDelBkColor(m_hMainVideo);
 	//ui.m_DeleteNoise->setChecked(false);
-	if(m_PrintView)
+	if(m_hMainView)
 	{
-		EloamView_Release(m_PrintView);
-		m_PrintView=NULL;
+		EloamView_Release(m_hMainView);
+		m_hMainView=NULL;
 	}
 	if(m_hPrintImage)
 	{
 		EloamImage_Release(m_hPrintImage);
 		m_hPrintImage=NULL;
 	}
-	m_hPrintView=NULL;
 	m_printConfigParam.printNum=1;
 	//m_PrintNum=1;
 	
 }
-
-
-void EloamPrint::A3CombineProcess(HELOAMIMAGE hImg,QString imgPath)
-{
-	HELOAMRECT rectDest1;
-	HELOAMRECT rectSrc1;
-	HELOAMIMAGE hImageCombine;
-	int w1=EloamImage_GetWidth(hImg);
-	int h1=EloamImage_GetHeight(hImg);
-	bool bResize = EloamImage_Resize(hImg,w1*1.038,h1*1.038,0);
-	if(bResize)
-	{
-		w1 = EloamImage_GetWidth(hImg);
-		h1 = EloamImage_GetHeight(hImg);
-	}
-	if(w1>=h1)
-	{
-		if(!m_printConfigParam.isOrignal)
-		{
-			hImageCombine=EloamGlobal_CreateImage(m_A3Width, m_A3Height,1);//灰度图像
-		}else 
-		{	
-			hImageCombine=EloamGlobal_CreateImage(m_A3Width, m_A3Height,3);//彩色图像
-		}
-		if((w1>m_A3Width)||(h1>m_A3Height))
-		{
-			//请检查拍摄文件尺寸是否大于A3
-			rectDest1 = EloamGlobal_CreateRect(0,0,m_A3Width,m_A3Height);
-			rectSrc1 = EloamGlobal_CreateRect((w1-m_A3Width)/2,(h1-m_A3Height)/2, m_A3Width, m_A3Height);
-		}
-		else
-		{
-			rectDest1 = EloamGlobal_CreateRect((m_A3Width-w1)/2, (m_A3Height-h1)/2, w1,h1);
-			rectSrc1 = EloamGlobal_CreateRect(0, 0, w1, h1);
-		}
-	}
-	else
-	{		
-		if(!m_printConfigParam.isOrignal)
-		{
-			hImageCombine=EloamGlobal_CreateImage(m_A3Height,m_A3Width, 1);
-		}else 
-		{	
-			hImageCombine=EloamGlobal_CreateImage(m_A3Height, m_A3Width,3);
-		}
-		if((w1>m_A3Height)||(h1>m_A3Width))
-		{
-			//请检查拍摄文件尺寸是否大于A3
-			rectDest1 = EloamGlobal_CreateRect(0,0,m_A3Height,m_A3Width);
-			rectSrc1 = EloamGlobal_CreateRect((w1-m_A3Height)/2,(h1-m_A3Width)/2,m_A3Height, m_A3Width);
-		}
-		else
-		{
-			rectDest1 = EloamGlobal_CreateRect((m_A3Height-w1)/2+20, (m_A3Width-h1)/2+20, w1-40,h1-40);
-			rectSrc1 = EloamGlobal_CreateRect(20, 20, w1-40,h1-40);
-		}
-	}
-	if (hImageCombine)
-	{
-
-		EloamImage_SetXDPI(hImageCombine,m_fCurXDpi);
-		EloamImage_SetYDPI(hImageCombine,m_fCurYDpi);
-		EloamImage_Blend(hImageCombine, rectDest1, hImg, rectSrc1, 0, 0);
-		
-		if (EloamImage_Save(hImageCombine, (BSTR)(LPCWSTR)imgPath.data(), m_iJPEGQulitVal))
-		{
-				EloamGlobal_PlayCaptureVoice();
-				//EloamView_PlayCaptureEffect(m_hMainView);
-				EloamThumbnail_Add(m_hThumbPrint,(BSTR)(LPCWSTR)imgPath.data());
-				SendMsgToParent(imgPath);
-		}
-		EloamImage_Release( hImageCombine );
-		hImageCombine = NULL;
-	}
-	EloamRect_Release(rectDest1);
-	EloamRect_Release(rectSrc1);
-}
-
-void EloamPrint::A4CombineProcess(HELOAMIMAGE hImg,QString imgPath)
-{
-	HELOAMIMAGE hImageCombine;
-	HELOAMRECT rectDest1;
-	HELOAMRECT rectSrc1;
-	int w1 = EloamImage_GetWidth(hImg);
-	int h1 = EloamImage_GetHeight(hImg);
-	bool bResize = EloamImage_Resize(hImg,w1*1.038,h1*1.038,0);
-	if(bResize)
-	{
-		w1 = EloamImage_GetWidth(hImg);
-		h1 = EloamImage_GetHeight(hImg);
-	}
-	if(w1>=h1)
-	{
-		if(!m_printConfigParam.isOrignal)
-		{
-			hImageCombine=EloamGlobal_CreateImage(m_A4Width, m_A4Height,1);
-		}else 
-		{	
-			hImageCombine=EloamGlobal_CreateImage(m_A4Width, m_A4Height,3);
-		}
-		if((w1>m_A4Width)||(h1>m_A4Height))
-		{
-			//请检查拍摄文件尺寸是否大于A4
-			rectDest1 = EloamGlobal_CreateRect(0,0,m_A4Width,m_A4Height);
-			rectSrc1 = EloamGlobal_CreateRect((w1-m_A4Width)/2,(h1-m_A4Height)/2, m_A4Width, m_A4Height);
-		}
-		else
-		{
-			rectDest1 = EloamGlobal_CreateRect((m_A4Width-w1)/2+20, (m_A4Height-h1)/2+20, w1-40,h1-40);
-			rectSrc1 = EloamGlobal_CreateRect(20,20, w1-40, h1-40);
-		}
-	}
-	else
-	{
-
-		if(!m_printConfigParam.isOrignal)
-		{
-			hImageCombine=EloamGlobal_CreateImage(m_A4Height,m_A4Width, 1);
-		}else 
-		{	
-			hImageCombine=EloamGlobal_CreateImage(m_A4Height, m_A4Width,3);
-		}
-		if((w1>m_A4Height)||(h1>m_A4Width))
-		{
-			//请检查拍摄文件尺寸是否大于A4
-			rectDest1 = EloamGlobal_CreateRect(0,0,m_A4Height,m_A4Width);
-			rectSrc1 = EloamGlobal_CreateRect((w1-m_A4Height)/2,(h1-m_A4Width)/2,m_A4Height, m_A4Width);
-		}
-		else
-		{
-			rectDest1 = EloamGlobal_CreateRect((m_A4Height-w1)/2, (m_A4Width-h1)/2, w1,h1);
-			rectSrc1 = EloamGlobal_CreateRect(20, 20, w1-40,h1-40);
-		}
-	}
-
-	if (hImageCombine)
-	{
-		EloamImage_SetXDPI(hImageCombine,m_fCurXDpi);
-		EloamImage_SetYDPI(hImageCombine,m_fCurYDpi);
-		EloamImage_Blend(hImageCombine, rectDest1, hImg, rectSrc1, 0, 0);
-		if (EloamImage_Save(hImageCombine, (BSTR)(LPCWSTR)imgPath.data(), m_iJPEGQulitVal))
-		{
-			EloamGlobal_PlayCaptureVoice();
-			EloamThumbnail_Add(m_hThumbPrint,(BSTR)(LPCWSTR)imgPath.data());
-			SendMsgToParent(imgPath);
-		}
-		EloamImage_Release( hImageCombine );
-		hImageCombine = NULL;
-	}
-	EloamRect_Release(rectDest1);
-	EloamRect_Release(rectSrc1);
-
-}
-
-
-
-void EloamPrint::A4CombineProcessB(HELOAMIMAGE hImg,QString imgPath)
-{
- 	HELOAMIMAGE hImageCombine = EloamGlobal_CreateImage(m_A4Width, m_A4Height,1);
-	HELOAMRECT rectDest1;
-	HELOAMRECT rectSrc1;
-	int w1 = EloamImage_GetWidth(hImg);
-	int h1 = EloamImage_GetHeight(hImg); 
-	bool bResize = EloamImage_Resize(hImg,w1*1.038,h1*1.038,0);
-	if(bResize)
-	{
-		w1 = EloamImage_GetWidth(hImg);
-		h1 = EloamImage_GetHeight(hImg);
-	}
-	if(w1>=h1)
-	{
-		if(!m_printConfigParam.isOrignal)
-		{
-			hImageCombine=EloamGlobal_CreateImage(m_A4Width, m_A4Height,1);
-		}else 
-		{	
-			hImageCombine=EloamGlobal_CreateImage(m_A4Width, m_A4Height,3);
-		}
-		if((w1>m_A4Width)||(h1>m_A4Height))
-		{
-			//请检查拍摄文件尺寸是否大于A4
-			rectDest1 = EloamGlobal_CreateRect(0,0,m_A4Width,m_A4Height);
-			rectSrc1 = EloamGlobal_CreateRect((w1-m_A4Width)/2,(h1-m_A4Height)/2, m_A4Width, m_A4Height);
-		}
-		else
-		{
-			rectDest1 = EloamGlobal_CreateRect((m_A4Width-w1)/2, (m_A4Height-h1)/2, w1,h1);
-			rectSrc1 = EloamGlobal_CreateRect(0, 0, w1, h1);
-		}
-	}
-	else
-	{
-		
-		if(!m_printConfigParam.isOrignal)
-		{
-			hImageCombine=EloamGlobal_CreateImage(m_A4Height,m_A4Width, 1);
-		}else 
-		{	
-			hImageCombine=EloamGlobal_CreateImage(m_A4Height, m_A4Width,3);
-		}
-		if((w1>m_A4Height)||(h1>m_A4Width))
-		{
-			//请检查拍摄文件尺寸是否大于A4
-			rectDest1 = EloamGlobal_CreateRect(0,0,m_A4Height,m_A4Width);
-			rectSrc1 = EloamGlobal_CreateRect((w1-m_A4Height)/2,(h1-m_A4Width)/2,m_A4Height, m_A4Width);
-		}
-		else
-		{
-			rectDest1 = EloamGlobal_CreateRect((m_A4Height-w1)/2, (m_A4Width-h1)/2, w1,h1);
-			rectSrc1 = EloamGlobal_CreateRect(0,0, w1,h1);
-		}
-	}
-	if (hImageCombine)
-	{
-		
-		EloamImage_SetXDPI(hImageCombine,m_fCurXDpi);
-		EloamImage_SetYDPI(hImageCombine,m_fCurYDpi);
-		EloamImage_Blend(hImageCombine, rectDest1, hImg, rectSrc1, 0, 0);
-		if(EloamImage_Save(hImageCombine, (BSTR)(LPCWSTR)imgPath.data(), 0))
-		{
-			//EloamThumbnail_Add(m_hThumbPrint,(BSTR)(LPCWSTR)imgPath.data());
-			SendMsgToParent(imgPath);
-		}
-		EloamImage_Release( hImageCombine );
-		hImageCombine = NULL;
-	}
-	EloamRect_Release(rectDest1);
-	EloamRect_Release(rectSrc1);
-}
-
-
-
 
 
 HELOAMIMAGE EloamPrint::GeneratePrintImage( HELOAMIMAGE hInputImg,PrintSize printSize )
@@ -911,31 +639,22 @@ HELOAMIMAGE EloamPrint::GeneratePrintImage( HELOAMIMAGE hInputImg,PrintSize prin
 	EloamRect_Release(rectDest);
 	EloamRect_Release(rectSrc);
 	return hPrintImage;		
-	//if (EloamImage_Save(hImageCombine, (BSTR)(LPCWSTR)imgPath.data(), m_iJPEGQulitVal))
-	//	{
-	//		EloamGlobal_PlayCaptureVoice();
-	//		//EloamView_PlayCaptureEffect(m_hMainView);
-	//		EloamThumbnail_Add(m_hThumbPrint,(BSTR)(LPCWSTR)imgPath.data());
-	//		SendMsgToParent(imgPath);
-	//	}
-	//	EloamImage_Release( hImageCombine );
-	//	hImageCombine = NULL;
-	//}
 }
-
-
-
-
 
 
 void EloamPrint::A4IDCardCombineProcess(HELOAMIMAGE hImg,QString imgPath)
 {	
+	//提示:
 	QString m_printInfo = translate.GetlanguageAbbr("STRING_PRINT_TIPS");
+	//证件正反合成开始！
 	QString m_printMessge = translate.GetlanguageAbbr("STRING_PRINT_IDCARDCOMBINE_START");
+	//证件正反合成已完成！
 	QString m_printMessge2 =translate.GetlanguageAbbr("STRING_PRINT_IDCARDCOMBINE_END");
+	//合成失败,合成A4尺寸照片请确保证件单面尺寸在A5范围内！
 	QString m_printMessge3 =translate.GetlanguageAbbr("STRING_PRINT_IDCARDCOMBINE_OVERRANGEA5");
+	//合成失败,合成A3尺寸照片请确保证件单面尺寸在A4范围内！
 	QString m_printMessge4 =translate.GetlanguageAbbr("STRING_PRINT_IDCARDCOMBINE_OVERRANGEA4");
-	EloamView_SetMessage(m_PrintView,NULL);
+	EloamView_SetMessage(m_hMainView,NULL);
 	int w1=EloamImage_GetWidth(hImg);
 	int h1=EloamImage_GetHeight(hImg);
 	int width,height;
@@ -978,7 +697,8 @@ void EloamPrint::A4IDCardCombineProcess(HELOAMIMAGE hImg,QString imgPath)
 		{
 			rectDest1 = EloamGlobal_CreateRect(0,height/2, width,height/2);
 			rectSrc1 = EloamGlobal_CreateRect((w1-width)/2, (h1-height/2)/2, width, height/2);
-		}else
+		}
+		else
 		{
 			rectDest1 = EloamGlobal_CreateRect((width-w1)/2,(height/2+20), w1,h1);
 			rectSrc1 = EloamGlobal_CreateRect(0, 0, w1, h1);
@@ -1030,7 +750,7 @@ void EloamPrint::A4IDCardCombineProcess(HELOAMIMAGE hImg,QString imgPath)
 		EloamRect_Release(rectDest1);
 		EloamRect_Release(rectSrc1);
 		m_printMessge = translate.GetlanguageAbbr("STRING_PRINT_OTHERHAND");
-		EloamView_SetMessage(m_PrintView,(BSTR)(LPCWSTR)m_printMessge.data());
+		EloamView_SetMessage(m_hMainView,(BSTR)(LPCWSTR)m_printMessge.data());
 	}	
 }
 
@@ -1041,7 +761,7 @@ void EloamPrint::OnScanPrint2()
 		EloamImage_Release(m_hPrintImage);
 		m_hPrintImage=NULL;
 	}	
-	m_hPrintImage = EloamVideo_CreateImage(m_hMainVideo, 0, m_PrintView);
+	m_hPrintImage = EloamVideo_CreateImage(m_hMainVideo, 0, m_hMainView);
 	if(!m_hPrintImage)
 	{
 		return;
@@ -1060,34 +780,6 @@ void EloamPrint::OnScanPrint2()
 	}
 }
 
-
-
-void EloamPrint::OnScanSizeA3()
-{
-	if(m_ischangeDPI == 0)
-	{
-		m_fCurXDpi = m_A3DefDpi;
-		m_fCurYDpi = m_A3DefDpi;
-		m_A4Width = m_A3HA4WidthDef;
-		m_A4Height= m_A3HA4HeightDef;
-		m_A3Width = m_A3HA3WidthDef;
-		m_A3Height = m_A3HA3HeightDef;
-	}
-}
-
-void EloamPrint::OnScanSizeA4()
-{
-	if(m_ischangeDPI == 0)
-	{
-		m_fCurXDpi = m_A4DefDpi;
-		m_fCurYDpi = m_A4DefDpi;
-		m_A4Width = m_A4HA4WidthDef;
-		m_A4Height =  m_A4HA4HeightDef;
-		m_A3Width = m_A4HA3WidthDef;
-		m_A3Height = m_A4HA3HeightDef;
-	}
-}
-
 //设置
 void EloamPrint::OnConfigDlg()
 {
@@ -1102,7 +794,7 @@ void EloamPrint::OnCut()
 	if(!m_bIsCut)
 	{
 		m_bIsCut= true;
-		EloamView_SetState(m_PrintView, 2);//设置窗口状态为自定义
+		EloamView_SetState(m_hMainView, 2);//设置窗口状态为自定义
 		ui.label_Cut->setText(translate.GetlanguageAbbr("STRING_PRINT_SURECUT"));
 		ui.pushButton_Cut->setToolTip(translate.GetlanguageAbbr("STRING_PRINT_SURECUT"));
 	}
@@ -1111,12 +803,12 @@ void EloamPrint::OnCut()
 		ui.label_Cut->setText(translate.GetlanguageAbbr("STRING_PRINT_CUT"));
 		ui.pushButton_Cut->setToolTip(translate.GetlanguageAbbr("STRING_PRINT_CUT"));
 		
-		HELOAMRECT m_hCutSelectRect=EloamView_GetSelectedRect(m_PrintView);
+		HELOAMRECT m_hCutSelectRect=EloamView_GetSelectedRect(m_hMainView);
 		if (NULL==m_hCutSelectRect)
 		{
 			m_bIsCut= false;
-			EloamView_SetSelectedRect(m_PrintView, NULL);
-			EloamView_SetState(m_PrintView, 1);	
+			EloamView_SetSelectedRect(m_hMainView, NULL);
+			EloamView_SetState(m_hMainView, 1);	
 			return;
 		}
 		
@@ -1139,7 +831,6 @@ void EloamPrint::OnCut()
 			m_hCutImage = EloamGlobal_CreateImageFromFile((BSTR)(LPCWSTR)m_sShowResultImagePath.data(),0);
 			if(NULL == m_hCutRect)
 			{
-
 				int imgW = EloamImage_GetWidth(m_hCutImage);
 				int imgH = EloamImage_GetHeight(m_hCutImage);
 				float rw =  (imgW*1.0)/Vw;
@@ -1177,16 +868,22 @@ void EloamPrint::OnCut()
 			QDateTime Datetime = QDateTime::currentDateTime();
 			QString Ctime = Datetime.toString("yyyyMMdd_hhmmss");
 			m_sCutImagePath = m_printConfigParam.savePath + QString::fromLocal8Bit("/") + Ctime + GetImageSaveSuffix(m_iImgSaveType);
-			EloamView_SelectImage(m_PrintView,m_hCutImage);
-			A4CombineProcessB(m_hCutImage,m_sCutImagePath);
+			EloamView_SelectImage(m_hMainView,m_hCutImage);
+			HELOAMIMAGE cutImg=GeneratePrintImage(m_hShowResultImage,m_printConfigParam.printSize);
+			if (cutImg)
+			{
+				EloamImage_Save(cutImg, (BSTR)(LPCWSTR)m_sCutImagePath.data(), m_iJPEGQulitVal);
+				EloamImage_Release(cutImg);
+				cutImg = NULL;
+			}
 			EloamThumbnail_Add(m_hThumbPrint,(BSTR)(LPCWSTR)m_sCutImagePath.data());
 		}
 		//释放区域对象
 		EloamRect_Release(m_hCutSelectRect);
 		m_hCutSelectRect= NULL;
 		m_bIsCut= false;
-		EloamView_SetSelectedRect(m_PrintView, NULL);
-		EloamView_SetState(m_PrintView, 1);	
+		EloamView_SetSelectedRect(m_hMainView, NULL);
+		EloamView_SetState(m_hMainView, 1);	
 	}
 }
 //拍照
@@ -1206,35 +903,33 @@ void EloamPrint::OnCapture()
 			m_hPrintImage=NULL;
 		}
 
-		m_hPrintImage = EloamVideo_CreateImage(m_hMainVideo, 0, m_PrintView);
+		m_hPrintImage = EloamVideo_CreateImage(m_hMainVideo, 0, m_hMainView);
 		if(NULL == m_hPrintImage)
 		{
 			return;
 		}
 		else            //系统时间
 		{
-			QDateTime Datetime = QDateTime::currentDateTime();
-			QString Ctime = Datetime.toString("yyyyMMdd_hhmmss");
-			QString FileSaveName;
-			FileSaveName =m_printConfigParam.savePath + QString::fromLocal8Bit("/") + Ctime + GetImageSaveSuffix(m_iImgSaveType);
-
 			if(!m_printConfigParam.isOrignal)
 			{
 				EloamImage_AdaptiveThreshold(m_hPrintImage,m_nThresholdValue);
 			}
-
-			if(PrintSizeA3==m_printConfigParam.printSize)
+			HELOAMIMAGE printImg=GeneratePrintImage(m_hPrintImage,m_printConfigParam.printSize);
+			QString imgPath=GetImageSaveFileName();
+			if (EloamImage_Save(printImg, (BSTR)(LPCWSTR)imgPath.data(), m_iJPEGQulitVal))
 			{
-				A3CombineProcess(m_hPrintImage,FileSaveName);
-			}
-			else
-			{
-				A4CombineProcess(m_hPrintImage,FileSaveName);
+				{
+					EloamGlobal_PlayCaptureVoice();
+					EloamView_PlayCaptureEffect(m_hMainView);
+					EloamThumbnail_Add(m_hThumbPrint,(BSTR)(LPCWSTR)imgPath.data());
+					SendMsgToParent(imgPath);
+				}
+				EloamImage_Release( printImg );
+				printImg = NULL;
 			}
 		}
 	}
 }
-
 //打印预览、视频预览切换
 void EloamPrint::OnSwitchView()            //切回视频画面
 {	
@@ -1252,7 +947,7 @@ void EloamPrint::OnSwitchView()            //切回视频画面
 		ui.label_SwitchView->setText(translate.GetlanguageAbbr("STRING_DAYING_YULAN"));
 		ui.pushButton_SwitchView->setToolTip(translate.GetlanguageAbbr("STRING_DAYING_YULAN"));
 
-		EloamView_SelectVideo(m_PrintView,m_hMainVideo,NULL,this);
+		EloamView_SelectVideo(m_hMainView,m_hMainVideo,NULL,this);
 		m_bIsCut = false;
 		ui.pushButton_Cut->setToolTip(translate.GetlanguageAbbr("STRING_PRINT_CUT"));
 	
@@ -1270,11 +965,6 @@ void EloamPrint::OnSwitchView()            //切回视频画面
 		{
 			EloamImage_Release(m_hShowResultImage);
 			m_hShowResultImage = NULL; 
-		}
-		if(m_hShowResultImageA != NULL)
-		{
-			EloamImage_Release(m_hShowResultImageA);
-			m_hShowResultImageA = NULL; 
 		}
 	}
 	else
@@ -1302,27 +992,26 @@ void EloamPrint::OnSwitchView()            //切回视频画面
 			EloamImage_Release(m_hShowResultImage);
 			m_hShowResultImage = NULL; 
 		}
-		if(NULL!=m_hShowResultImageA)
-		{
-			EloamImage_Release(m_hShowResultImageA);
-			m_hShowResultImageA = NULL; 
-		}
 
-		m_sShowResultImagePath = GetImageSaveFileName();
-		m_hShowResultImage = EloamVideo_CreateImage(m_hMainVideo,0,m_PrintView);
-		EloamImage_Save(m_hShowResultImage,(BSTR)(LPCWSTR)m_sShowResultImagePath.data(),0);
+		m_sShowResultImagePath = GetImageSaveFileName("ori");
+		m_hShowResultImage = EloamVideo_CreateImage(m_hMainVideo,0,m_hMainView);
+		EloamImage_Save(m_hShowResultImage,(BSTR)(LPCWSTR)m_sShowResultImagePath.data(),0);//保存原始图像
+		
 		if(!m_printConfigParam.isOrignal)
 		{
-			EloamImage_AdaptiveThreshold(m_hShowResultImage,m_nThresholdValue); 
-			QString m_sImagePath = GetImageSaveFileName("1");	
-			A4CombineProcess(m_hShowResultImage,m_sImagePath);
+			EloamImage_AdaptiveThreshold(m_hShowResultImage,m_nThresholdValue); 			
 		}
-		else
-		{	
-			QString m_sImagePath = GetImageSaveFileName();
-			A4CombineProcess(m_hShowResultImage,m_sImagePath);
+		HELOAMIMAGE printImg = GeneratePrintImage(m_hShowResultImage,m_printConfigParam.printSize);
+		QString imgPath = GetImageSaveFileName();	
+		if (EloamImage_Save(printImg, (BSTR)(LPCWSTR)imgPath.data(), m_iJPEGQulitVal))
+		{
+			EloamThumbnail_Add(m_hThumbPrint,(BSTR)(LPCWSTR)imgPath.data());
+			SendMsgToParent(imgPath);
 		}
-		EloamView_SelectImage(m_PrintView,m_hShowResultImage);	
+		EloamImage_Release( printImg );
+		printImg = NULL;
+
+		EloamView_SelectImage(m_hMainView,m_hShowResultImage);	
 	}
 }
 //打印
@@ -1419,56 +1108,34 @@ void EloamPrint::OnCbSelectAll()
 	}
 }
 //设置二值化阈值
-void EloamPrint::setThresholdValue(int Value)
+void EloamPrint::OnThresholdValueChanged(int Value)
 {
-	int thresholdValue = ui.slider_Threshold->value();
 	if (m_sShowResultImagePath.isEmpty())
 	{
 		return;
 	}
-	if(m_bIsShowA)
+	m_nThresholdValue = ui.slider_Threshold->value();
+	if(m_hShowResultImage != NULL)
 	{
-		if(m_hShowResultImage != NULL)
-		{
-			EloamImage_Release(m_hShowResultImage);
-			m_hShowResultImage = NULL;
-		}
-		m_hShowResultImage = EloamGlobal_CreateImageFromFile((BSTR)(LPCWSTR)m_sShowResultImagePath.data(),0);
-		EloamImage_AdaptiveThreshold(m_hShowResultImage,m_nThresholdValue);
-		if(NULL != m_hCutRect)
-		{
-			EloamImage_Crop(m_hShowResultImage,m_hCutRect);
-			A4CombineProcessB(m_hShowResultImage,m_sCutImagePath);
-		}
-
-		EloamView_SelectImage(m_PrintView,m_hShowResultImage);
-		m_bIsShowA = FALSE;
+		EloamImage_Release(m_hShowResultImage);
+		m_hShowResultImage = NULL;
 	}
-	else
+	m_hShowResultImage = EloamGlobal_CreateImageFromFile((BSTR)(LPCWSTR)m_sShowResultImagePath.data(),0);
+	EloamImage_AdaptiveThreshold(m_hShowResultImage,m_nThresholdValue);
+	if(NULL != m_hCutRect)
 	{
-		if(m_hShowResultImageA != NULL)
+		EloamImage_Crop(m_hShowResultImage,m_hCutRect);
+		HELOAMIMAGE cutImg=GeneratePrintImage(m_hShowResultImage,m_printConfigParam.printSize);
+		if (cutImg)
 		{
-			EloamImage_Release(m_hShowResultImageA);
-			m_hShowResultImageA = NULL;
+			EloamImage_Save(cutImg, (BSTR)(LPCWSTR)m_sCutImagePath.data(), m_iJPEGQulitVal);
+			EloamImage_Release(cutImg);
+			cutImg = NULL;
 		}
-		m_hShowResultImageA = EloamGlobal_CreateImageFromFile((BSTR)(LPCWSTR)m_sShowResultImagePath.data(),0);
-		EloamImage_AdaptiveThreshold(m_hShowResultImageA,m_nThresholdValue);
-		if(NULL != m_hCutRect)
-		{
-			EloamImage_Crop(m_hShowResultImageA,m_hCutRect);
-			A4CombineProcessB(m_hShowResultImageA,m_sCutImagePath);
-		}
-		EloamView_SelectImage(m_PrintView,m_hShowResultImageA);
-		m_bIsShowA = TRUE;
 	}
+	EloamView_SelectImage(m_hMainView,m_hShowResultImage);
 }
-
-
-
-
-
-
-
+//响应配置参数改变
 void EloamPrint::onNewPrintConfig( QVariant& newParm )
 {
 	PrintConfigParam configparm=newParm.value<PrintConfigParam>();  
@@ -1489,11 +1156,27 @@ void EloamPrint::onNewPrintConfig( QVariant& newParm )
 		m_printConfigParam.printSize = configparm.printSize;
 		if (PrintSizeA4==m_printConfigParam.printSize)
 		{
-			OnScanSizeA4();
+			if(m_ischangeDPI == 0)
+			{
+				m_fCurXDpi = m_A4DefDpi;
+				m_fCurYDpi = m_A4DefDpi;
+				m_A4Width = m_A4HA4WidthDef;
+				m_A4Height =  m_A4HA4HeightDef;
+				m_A3Width = m_A4HA3WidthDef;
+				m_A3Height = m_A4HA3HeightDef;
+			}
 		}
 		else if (PrintSizeA3==m_printConfigParam.printSize)
 		{
-			OnScanSizeA3();
+			if(m_ischangeDPI == 0)
+			{
+				m_fCurXDpi = m_A3DefDpi;
+				m_fCurYDpi = m_A3DefDpi;
+				m_A4Width = m_A3HA4WidthDef;
+				m_A4Height= m_A3HA4HeightDef;
+				m_A3Width = m_A3HA3WidthDef;
+				m_A3Height = m_A3HA3HeightDef;
+			}
 		}
 	}
 	if(m_printConfigParam.isIdCard != configparm.isIdCard)
@@ -1533,7 +1216,7 @@ void EloamPrint::onNewPrintConfig( QVariant& newParm )
 		m_printConfigParam.calibrationCard=configparm.calibrationCard;
 	}
 }
-
+//响应恢复默认配置信号
 void EloamPrint::onStandardizationRestore()
 {
 	m_ischangeDPI = 0;
@@ -1541,135 +1224,87 @@ void EloamPrint::onStandardizationRestore()
 	{
 		m_fCurXDpi=m_A3DefDpi;
 		m_fCurYDpi=m_A3DefDpi;
-
 		m_A4Width  =  m_A3HA4WidthDef;
 		m_A4Height =  m_A3HA4HeightDef;
-
 		m_A3Width =  m_A3HA3WidthDef;
 		m_A3Height = m_A3HA3HeightDef;
 
 	}
-	else
+	else if(PrintSizeA4==m_printConfigParam.printSize)
 	{
 		m_fCurXDpi=m_A4DefDpi;
 		m_fCurYDpi=m_A4DefDpi;
-
 		m_A4Width  =  m_A4HA4WidthDef;
 		m_A4Height =  m_A4HA4HeightDef;
-
 		m_A3Width  = m_A4HA3WidthDef;
 		m_A3Height = m_A4HA3HeightDef;
 	}
 }
-
-void EloamPrint::onStandardizationCheckDPI( CalibrationCard size )
+//响应标定信号
+void EloamPrint::onStandardizationCheckDPI( CalibrationCard caliCardSize,bool isDeskew)
 {
-	QString strLid;
-	QString strName;
-	QString m_printInfo = translate.GetlanguageAbbr("STRING_PRINT_TIPS");
-	QString m_printMessge = translate.GetlanguageAbbr("STRING_PRINT_PUTA4_CARD");
-	QString m_printMessge2 = translate.GetlanguageAbbr("STRING_PRINT_PUTA5_CARD");
-	QString m_printMessge3 = translate.GetlanguageAbbr("STRING_PRINT_CHECKDPI_OUTRANGE");
-	QString m_printMessge4 = translate.GetlanguageAbbr("STRING_PRINT_CHECKDPI_COMPLETE");
-	int m_temp=0;
-	if(CalibrationCardA4 == m_printConfigParam.calibrationCard)
-	{//A4
-		QMessageBox::information(NULL,m_printInfo,m_printMessge,NULL);	
-	
-		HELOAMIMAGE hImage = EloamVideo_CreateImage(m_hMainVideo, 0, m_PrintView);
-		m_A4Width = EloamImage_GetWidth(hImage);
-		m_A4Height = EloamImage_GetHeight(hImage);
-		if( m_A4Width > m_A4Height)
-		{//横放
-			if(m_printConfigParam.isDeskew)
-			{
-				m_A4Width = m_A4Width +20;
-				m_A4Height = m_A4Height +23;
-			}
-			m_A3Width = m_A4Height*2;
-			m_A3Height = m_A4Width;
-			m_fCurXDpi = (m_A4Width * 254.0 ) / 2970.0;
-			m_fCurYDpi = (m_A4Height * 254.0) / 2100.0;
-		}
-		else
-		{//竖放	
-			if(!m_printConfigParam.isDeskew)
-			{
-				m_temp = m_A4Width;
-				m_A4Width = m_A4Height +18;
-				m_A4Height = m_temp + 22 ;
-			}
-			else
-			{	
-				m_temp = m_A4Width; 
-				m_A4Width = m_A4Height ;
-				m_A4Height = m_temp  ;
-			}
-			m_fCurXDpi=(m_A4Width * 25.4 )/2100.0;
-			m_fCurYDpi=(m_A4Height * 25.4 )/2970.0;
-		}
-	
-		EloamImage_Release(hImage);
-		hImage = NULL;
+	QString tip = translate.GetlanguageAbbr("STRING_PRINT_TIPS");//提示
+	QString tipPutA4Card = translate.GetlanguageAbbr("STRING_PRINT_PUTA4_CARD");//放A4纸
+	QString tipPutA5Card = translate.GetlanguageAbbr("STRING_PRINT_PUTA5_CARD");//放A5纸
+	QString tipOutRange = translate.GetlanguageAbbr("STRING_PRINT_CHECKDPI_OUTRANGE");//超出范围
+	QString tipComplete = translate.GetlanguageAbbr("STRING_PRINT_CHECKDPI_COMPLETE");//完成
+	float caliCardWidth=A4Width;//默认标定板宽度是A4纸宽度
+	float caliCardHeight=A4Height;//默认标定板高度是A4纸高度
+	if (CalibrationCardA5==caliCardSize)
+	{//如果标定板是A5尺寸
+		caliCardWidth=A5Width;
+		caliCardHeight=A5Height;
 	}
-	else
-	{//A5
-		QMessageBox::information(NULL,m_printInfo,m_printMessge2,NULL);	
-		int m_A5Width,m_A5Height;
-		HELOAMIMAGE hImage = EloamVideo_CreateImage(m_hMainVideo, 0, m_PrintView);
-		m_A5Width = EloamImage_GetWidth(hImage);
-		m_A5Height = EloamImage_GetHeight(hImage);
-	
-		if( m_A5Width > m_A5Height)
-		{
-			if(m_printConfigParam.isDeskew)
-			{
-				m_A5Width = m_A5Width +18;
-				m_A5Height = m_A5Height +22;
-			}
-			m_A4Width = m_A5Height*2;
-			m_A4Height = m_A5Width;
-			m_A3Width = m_A4Height*2;
-			m_A3Height = m_A4Width;
-			m_fCurXDpi = (m_A5Width * 254.0 ) / 2100.0;
-			m_fCurYDpi = (m_A5Height * 254.0) / 1485.0;
-		}
-		else
-		{
-			if(!m_printConfigParam.isDeskew)
-			{
-				m_temp = m_A5Width;
-				m_A5Width = m_A5Height +18;
-				m_A5Height = m_temp +22;
-			}
-			else
-			{
-				m_temp = m_A5Width;
-				m_A5Width = m_A5Height;
-				m_A5Height = m_temp;
-			}
-			m_A4Width = m_A5Height*2;
-			m_A4Height = m_A5Width;
-			m_A3Width = m_A4Height*2;
-			m_A3Height = m_A4Width;
-			m_fCurXDpi=(m_A4Width * 25.4 )/1485.0;
-			m_fCurYDpi=(m_A4Height * 25.4 )/2100.0;
-		}
-		EloamImage_Release(hImage);
-		hImage = NULL;
+	//提示放标定卡
+	if (CalibrationCardA4 == caliCardSize)
+	{
+		QMessageBox::information(m_printConfigUi,tip,tipPutA4Card);	
 	}
-	//if(!( ((m_CurXDpi<(m_A4DefDpi+10)) && (m_CurXDpi>(m_A4DefDpi-10)) && (m_CurYDpi<(m_A4DefDpi+10)) && (m_CurYDpi>(m_A4DefDpi-10)))||((m_CurXDpi<(m_A3DefDpi+10)) && (m_CurXDpi>(m_A3DefDpi-10)) && (m_CurYDpi<(m_A3DefDpi+10)) && ( m_CurYDpi>(m_A3DefDpi-10)) )) )
+	else if (CalibrationCardA5 == caliCardSize)
+	{
+		QMessageBox::information(m_printConfigUi,tip,tipPutA5Card);	
+	}
+	HELOAMIMAGE hImg = EloamVideo_CreateImage(m_hMainVideo, 0, m_hMainView);
+
+	int imgWidth=EloamImage_GetWidth(hImg);
+	int imgHeight=EloamImage_GetHeight(hImg);
+	if (imgWidth<imgHeight)
+	{//宽比高小，交换宽高
+		int temp=imgWidth;
+		imgWidth=imgHeight;
+		imgHeight=imgWidth;
+	}
+	if (isDeskew)
+	{
+		imgWidth+=18;
+		imgHeight+=22;
+	}
+	m_fCurXDpi=imgWidth/caliCardWidth*Inch;
+	m_fCurYDpi=imgHeight/caliCardHeight*Inch;
+	if (CalibrationCardA4 == caliCardSize)
+	{
+		m_A4Width = imgWidth;
+		m_A4Height = imgHeight;
+		m_A3Width = m_A4Height*2;
+		m_A3Height = m_A4Width;
+	}
+	else if (CalibrationCardA5==caliCardSize)
+	{
+		m_A4Width = imgHeight*2;
+		m_A4Height = imgWidth;
+		m_A3Width = m_A4Height*2;
+		m_A3Height = m_A4Width;
+	}
+	//if(!(((m_CurXDpi<(m_A4DefDpi+10)) && (m_CurXDpi>(m_A4DefDpi-10)) && (m_CurYDpi<(m_A4DefDpi+10)) && (m_CurYDpi>(m_A4DefDpi-10)))||((m_CurXDpi<(m_A3DefDpi+10)) && (m_CurXDpi>(m_A3DefDpi-10)) && (m_CurYDpi<(m_A3DefDpi+10)) && ( m_CurYDpi>(m_A3DefDpi-10)))))
 	//{
-	//	OnRestore();
-	//	QMessageBox::information(0,m_printInfo,m_printMessge3,0);
+	//	onStandardizationRestore();//标定失败，标定参数恢复默认值
+	//	QMessageBox::information(m_printConfigUi,tip,tipOutRange);
 	//	return;
 	//}
-	//else
-	//{
-	QMessageBox::information(0,m_printInfo,m_printMessge4,0);
-	//}
-	char format = 'g';
-	m_ischangeDPI = 1;
+	m_ischangeDPI = 1;			//标定成功
+	EloamImage_Release(hImg);
+	hImg = NULL;
+	QMessageBox::information(m_printConfigUi,tip,tipComplete);
 }
 
 //继承重写虚函数
@@ -1680,7 +1315,7 @@ void EloamPrint::closeEvent(QCloseEvent *event)
 
 //设备回调函数
 VOID ELOAMAPI EloamPrint::DevChangeCallback(LONG type, LONG idx, LONG dbt, LPVOID userData) 
-{
+{//type:1=视频设备、2=音频设备;idx=设备索引;dbt:1=设备到达、2设备丢失;userData=用户数据
 	if(1 != type)
 	{//不是视频对象
 		return;
@@ -1689,92 +1324,45 @@ VOID ELOAMAPI EloamPrint::DevChangeCallback(LONG type, LONG idx, LONG dbt, LPVOI
 	if(1 == dbt)
 	{//设备到达
 		HELOAMDEVICE hDev = EloamGlobal_CreateDevice(1,idx);	
-
+		pDlg->m_vDevices.push_back(hDev);
 		if(1 == EloamDevice_GetEloamType(hDev))
-		{
-			WCHAR * wName = EloamDevice_GetFriendlyName(hDev);
-			char buf[MAX_PATH] = {0}; 
-			int len = WideCharToMultiByte(CP_ACP,0, wName ,wcslen(wName),NULL,0,NULL,NULL);      
-			WideCharToMultiByte(CP_ACP,0,wName,wcslen(wName), buf,len,NULL,NULL);  	
-
-			pDlg->m_vMainDevice.push_back(hDev);
-			WCHAR * wNameg =  EloamGlobal_GetDisplayName(1,idx);
-			char bufname[MAX_PATH] = {0};
-			int leng = WideCharToMultiByte(CP_ACP,0,wNameg,wcslen(wNameg),NULL,0,NULL,NULL);
-			WideCharToMultiByte(CP_ACP,0,wNameg,wcslen(wNameg),bufname,leng,NULL,NULL);			
-			if(QString::fromLocal8Bit(bufname).mid(33,4) == "1020"||QString::fromLocal8Bit(bufname).mid(33,4) == "10a3")//通过PID来设置默认的DPI //1:1打印机型专用
-			{
-				pDlg->m_A4DefDpi=302;		
-				pDlg->m_A3DefDpi=214;
-				pDlg->m_A4HA4WidthDef=3536;
-				pDlg->m_A4HA4HeightDef=2500;
-				pDlg->m_A4HA3WidthDef=5000;
-				pDlg->m_A4HA3HeightDef=3536;
-				pDlg->m_A3HA4WidthDef=2500;
-				pDlg->m_A3HA4HeightDef=1768;
-				pDlg->m_A3HA3WidthDef=3536;
-				pDlg->m_A3HA3HeightDef=2500;
-
-			}
-			if(QString::fromLocal8Bit(bufname).mid(33,4) == "1502"||QString::fromLocal8Bit(bufname).mid(33,4) == "1500")//通过PID来设置默认的DPI //1:1打印机型专用
-			{
-				pDlg->m_A4DefDpi=356;
-				pDlg->m_A3DefDpi=252;
-				pDlg->m_A4HA4WidthDef=4176;
-				pDlg->m_A4HA4HeightDef=2954;
-				pDlg->m_A4HA3WidthDef=5908;
-				pDlg->m_A4HA3HeightDef=4176;
-				pDlg->m_A3HA4WidthDef=2954;
-				pDlg->m_A3HA4HeightDef=2088; 
-				pDlg->m_A3HA3WidthDef=4176;
-				pDlg->m_A3HA3HeightDef=2954;
-			}
-			EloamGlobal_DestroyString(wName);
-			pDlg->devFlag=idx;
+		{//如果是主视频,打开视频
+			pDlg->m_hMainDev=hDev;
 			pDlg->OpenVideo();
-
 		}
-
 	}
 	else if(2 == dbt)
-	{//设备丢失		
-		if(pDlg->m_vMainDevice.size() <=0)
-			return;
-		pDlg->OnCloseDevice();
-		pDlg->m_vMainDevice.clear();
-		pDlg->m_bIsLostDev =true;
-		return;
-		HELOAMDEVICE hDev = pDlg->m_vMainDevice[idx];
-		HELOAMDEVICE hDevTemp = EloamVideo_GetDevice(pDlg->m_hMainVideo);
-		if (hDev == hDevTemp)
+	{//设备丢失
+		for (int i=0;i<pDlg->m_vDevices.size();i++)
 		{
-			pDlg->OnCloseDevice();
-			int size = pDlg->m_vMainDevice.size();
-			for (int i = 0; i < size; ++i)
-			{
-				HELOAMDEVICE hDev = pDlg->m_vMainDevice[i];
-				EloamDevice_Release(hDev);
+			int devIndex=EloamDevice_GetIndex(pDlg->m_vDevices[i]);
+			if (-1==devIndex||devIndex==idx)
+			{//设备丢失
+				HELOAMDEVICE hMainDev = EloamVideo_GetDevice(pDlg->m_hMainVideo);
+				if (pDlg->m_vDevices[i]==hMainDev)
+				{
+					EloamView_SetText(pDlg->m_hMainView, L"没有输入信号...", 0);
+					//释放主视频
+					EloamVideo_Release(pDlg->m_hMainVideo);
+					pDlg->m_hMainVideo = NULL;
+					//置主视频设备对象为NULL
+					pDlg->m_hMainDev=NULL;
+				}
+				//释放拔掉的设备
+				EloamDevice_Release(pDlg->m_vDevices[i]);
+				pDlg->m_vDevices.erase(pDlg->m_vDevices.begin() + i);
 			}
-			pDlg->m_vMainDevice.clear();
-			pDlg->m_bIsLostDev =true;
-
-		}		
-		EloamDevice_Release(hDevTemp);
-		EloamDevice_Release(hDev);
+		}
 	}
 }
 
 VOID ELOAMAPI EloamPrint::AttachCallback(HELOAMVIDEO video, LONG videoId, HELOAMVIEW view, LONG viewId, LPVOID userData)
-{
+{//设置视频打开后属性
 	EloamPrint *pDlg = (EloamPrint *)userData;
-	//return;
-	//设置视频打开后的属性	
-	//QDilgCamera *pDlg = (QDilgCamera *)userData; 
 	if (1 == videoId && 1 == viewId)
 	{	
 		g_TheDilgAPP->InitDeskew();	
 	}	
-
 }
 
 VOID ELOAMAPI EloamPrint::ArivlaCallback(HELOAMVIDEO video, LONG videoId, LPVOID userData)
@@ -1788,7 +1376,7 @@ VOID ELOAMAPI EloamPrint::ArivlaCallback(HELOAMVIDEO video, LONG videoId, LPVOID
 
 VOID ELOAMAPI EloamPrint::EloamTouchCallback(HELOAMVIDEO video, LPVOID userData)
 {
-	//g_TheDilgAPP->OnScan();
+	
 }
 
 VOID ELOAMAPI EloamPrint::ZoomChange(HELOAMVIEW view, LONG flag, LONG value, LPVOID userData)
@@ -1799,7 +1387,6 @@ VOID ELOAMAPI EloamPrint::ZoomChange(HELOAMVIEW view, LONG flag, LONG value, LPV
 	{
 		if(flag == 2)
 		{
-			//pDlg->ui.Slide_Zoom->setValue(value);
 		}		
 	}	
 }

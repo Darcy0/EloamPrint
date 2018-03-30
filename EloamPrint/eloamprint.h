@@ -9,6 +9,12 @@
 
 #pragma comment(lib,"lib/eloamDll.lib")
 
+const float A4Width=297.0;//mm
+const float A4Height=210.0;//mm
+const float A5Width=210.0;//mm
+const float A5Height=148.5;//mm
+const float Inch=25.4;//mm
+
 class EloamPrint : public QWidget
 {
 	Q_OBJECT
@@ -37,7 +43,7 @@ private:
 	//获取保存图像文件后缀
 	QString GetImageSaveSuffix(int imgType);
 	//获取保存图像文件名
-	QString GetImageSaveFileName();
+	QString GetImageSaveFileName(QString flag="");
 	//初始化自动纠裁
 	void InitDeskew();
 	//初始化自动曝光
@@ -46,32 +52,15 @@ private:
 	HELOAMIMAGE GeneratePrintImage(HELOAMIMAGE hInputImg,PrintSize printSize);
 	//打开视频
 	void OpenVideo();
-	//释放设备
-	void OnCloseDevice();
 	
 
-	
 	void ReversePrintImage(HELOAMIMAGE m_hPrintImage);
-	//合成A4大小
-	void A4CombineProcess(HELOAMIMAGE hImg,QString imgPath);
-	//合成A4大小
-	void A4CombineProcessB(HELOAMIMAGE hImg,QString imgPath);
 	//身份证正反合成
 	void A4IDCardCombineProcess(HELOAMIMAGE hImg,QString imgPath);
-	//合成A3大小
-	void A3CombineProcess(HELOAMIMAGE hImg,QString imgPath);
-
 public slots:
 	void OnScanPrint2();
 	//响应打印窗口上的关闭按钮
-	void OnStopPrint();
-
-	void onNewPrintConfig(QVariant& newParm);
-	void onStandardizationRestore();
-	void onStandardizationCheckDPI(CalibrationCard size);
-	void OnScanSizeA3();
-	void OnScanSizeA4();
-
+	void OnStopPrint();	
 	//打开设置窗口
 	void OnConfigDlg();
 	//启动裁剪
@@ -85,8 +74,13 @@ public slots:
 	//图片选全
 	void OnCbSelectAll();
 	//设置二值化阈值
-	void setThresholdValue(int Value);
-
+	void OnThresholdValueChanged(int Value);
+	//响应配置参数改变
+	void onNewPrintConfig(QVariant& newParm);
+	//响应恢复默认配置信号
+	void onStandardizationRestore();
+	//响应标定信号
+	void onStandardizationCheckDPI(CalibrationCard size,bool isDeskew);
 protected:
 	void closeEvent(QCloseEvent *event);
 
@@ -94,67 +88,52 @@ private:
 	Ui::EloamPrint ui;
 	Translate translate;						//国际化翻译类
 	PrintConfig *m_printConfigUi;				//设置窗口
+	long m_iJPEGQulitVal;						//图像质量
 	PrintConfigParam m_printConfigParam;		//设置参数
 	int m_bLanguageIndex;						//语言索引
-	int m_iImgSaveType;							//图片保存类型索引
-	
-	
+	int m_iImgSaveType;							//图片保存类型索引	
 	bool m_bIsVideoView;                        //标志打印界面显示的是不是视频图像
 	bool m_bIsCut;								//标志是否处于裁剪状
+	int m_nThresholdValue;						//二值化阈值
 
-	int devFlag;
-	bool m_bIsLostDev;                         //标志设备拔掉了
+	               	
 	
-	
-	int m_A4DefDpi;								//默认的A4DPI出厂设置
-	int m_A3DefDpi;								//默认的A3DPI出厂设置
 	
 	int m_ischangeDPI;							//是否标定过
 	
-	int m_A4HA4WidthDef;
-	int m_A4HA4HeightDef;
-	int m_A4HA3WidthDef;
-	int m_A4HA3HeightDef;
-	int m_A3HA4WidthDef;
-	int m_A3HA4HeightDef;
-	int m_A3HA3WidthDef;
-	int m_A3HA3HeightDef;
-	
+	float m_fCurXDpi;							//默认X方向Dpi
+	float m_fCurYDpi;							//默认Y方向Dpi
 	int m_A4Width;                              //A4纸张的像素宽
 	int m_A4Height;								//A4纸张的像素高
 	int m_A3Width;                              //A3纸张的像素宽
 	int m_A3Height;								//A3纸张的像素高
-	
-	
-	
-	int m_nThresholdValue;						//二值化阈值
-	
-	
-	long m_iJPEGQulitVal;
-	float m_fCurXDpi;
-	float m_fCurYDpi;
-	
-	bool m_bIsShowA;
 
-
-	QString m_CurBinPath;
+	int m_A4DefDpi;								//默认的A4DPI出厂设置
+	int m_A3DefDpi;								//默认的A3DPI出厂设置
+	int m_A4HA4WidthDef;						//默认A4高度，A4纸宽度
+	int m_A4HA4HeightDef;						//默认A4高度，A4纸高度
+	int m_A4HA3WidthDef;						//默认A4高度，A3纸宽度
+	int m_A4HA3HeightDef;						//默认A4高度，A3纸高度
+	int m_A3HA4WidthDef;						//默认A3高度，A4纸宽度
+	int m_A3HA4HeightDef;						//默认A3高度，A4纸高度
+	int m_A3HA3WidthDef;						//默认A3高度，A3纸宽度
+	int m_A3HA3HeightDef;						//默认A3高度，A3纸高度
 	
+		
 	QString m_sShowResultImagePath;//保存路径
 	QString m_sCutImagePath;
 	
-	HWND m_hPrintView;
 	HELOAMDEVICE m_hMainDev;					//主头当前设备
+	std::vector<HELOAMDEVICE> m_vDevices;    //主设备列表
 	HELOAMVIDEO m_hMainVideo;					//主视频
-	std::vector<HELOAMDEVICE> m_vMainDevice;    //主设备列表
-	HELOAMVIEW m_PrintView;						//打印窗口的画面  
+	HELOAMVIEW m_hMainView;						//主视频窗口的画面  
+	HELOAMTHUMBNAIL m_hThumbPrint;              //打印窗口的缩略图句柄	
+	
 	HELOAMIMAGE m_hPrintImage;					//打印窗口的图片句柄
 	HELOAMRECT m_hCutRect;						//裁剪区域的句柄
 	HELOAMIMAGE m_hCutImage;
 	HELOAMIMAGE m_hShowResultImage;				//用于显示二值化效果的图片对象
-	HELOAMIMAGE m_hShowResultImageA;
 	HELOAMIMAGE m_hImageReverse;
-	HELOAMIMAGE m_IDCardFirstImage;				//二代证合成的第一张图片
-	HELOAMIMAGE m_hIDCardCombine;				//二代证合成图片句柄
-	HELOAMTHUMBNAIL m_hThumbPrint;              //打印窗口的缩略图句柄
+	HELOAMIMAGE m_hIDCardCombine;				//二代证合成图片句柄	
 };
 #endif // ELOAMPRINT_H
