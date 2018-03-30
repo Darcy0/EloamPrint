@@ -51,16 +51,13 @@ private:
 	//生成打印图片
 	HELOAMIMAGE GeneratePrintImage(HELOAMIMAGE hInputImg,PrintSize printSize);
 	//图片合成 hImg1=合成的第一张图片;hImg2=合成的第二张图片;space=合成图片时的间距;isVertical=是否垂直排列
-	HELOAMIMAGE ImageCombine(HELOAMIMAGE* hImg1,HELOAMIMAGE* hImg2,int space=0,bool isVertical=true);
+	HELOAMIMAGE ImageCombine(HELOAMIMAGE hImg1,HELOAMIMAGE hImg2,int space=0,bool isVertical=true);
 	//打开视频
 	void OpenVideo();
-	
-
-	void ReversePrintImage(HELOAMIMAGE m_hPrintImage);
-	//身份证正反合成
-	void A4IDCardCombineProcess(HELOAMIMAGE hImg,QString imgPath);
+	//为了解决本程序生成保存的图片用windows自带的打印实际效果会偏小，所以有一个1.038的经验值。
+	//该函数为了消除用程序自带打印时，经验值的影响。
+	HELOAMIMAGE ReversePrintImage(HELOAMIMAGE printImage);
 public slots:
-	void OnScanPrint2();
 	//响应打印窗口上的关闭按钮
 	void OnStopPrint();	
 	//打开设置窗口
@@ -84,6 +81,7 @@ public slots:
 	//响应标定信号
 	void onStandardizationCheckDPI(CalibrationCard size,bool isDeskew);
 protected:
+	//窗口关闭事件
 	void closeEvent(QCloseEvent *event);
 
 private:
@@ -126,7 +124,7 @@ private:
 	QString m_sCutImagePath;
 	
 	HELOAMDEVICE m_hMainDev;					//主头当前设备
-	std::vector<HELOAMDEVICE> m_vDevices;    //主设备列表
+	std::vector<HELOAMDEVICE> m_vDevices;		//主设备列表
 	HELOAMVIDEO m_hMainVideo;					//主视频
 	HELOAMVIEW m_hMainView;						//主视频窗口的画面  
 	HELOAMTHUMBNAIL m_hThumbPrint;              //打印窗口的缩略图句柄	
@@ -135,7 +133,5 @@ private:
 	HELOAMRECT m_hCutRect;						//裁剪区域的句柄
 	HELOAMIMAGE m_hCutImage;
 	HELOAMIMAGE m_hShowResultImage;				//用于显示二值化效果的图片对象
-	HELOAMIMAGE m_hImageReverse;
-	HELOAMIMAGE m_hIDCardCombine;				//二代证合成图片句柄	
 };
 #endif // ELOAMPRINT_H
