@@ -641,6 +641,53 @@ HELOAMIMAGE EloamPrint::GeneratePrintImage( HELOAMIMAGE hInputImg,PrintSize prin
 	return hPrintImage;		
 }
 
+HELOAMIMAGE EloamPrint::ImageCombine( HELOAMIMAGE* hImg1,HELOAMIMAGE* hImg2,int space/*=0*/,bool isVertical/*=true*/ )
+{
+	HELOAMIMAGE combineImg=NULL;
+	if (NULL==hImg1||NULL==hImg2)
+	{//合成照片不完全存在
+		return combineImg;
+	}
+	if (1==EloamImage_GetChannels(hImg1)||1==EloamImage_GetChannels(hImg2))
+	{//只合成彩色图片
+		return combineImg;
+	}	
+	LONG hImg1Width = EloamImage_GetWidth(hImg1);
+	LONG hImg2Width = EloamImage_GetWidth(hImg2);
+	LONG hImg1Height = EloamImage_GetHeight(hImg1);
+	LONG hImg2Height = EloamImage_GetHeight(hImg2);
+
+	LONG combineImgWidth=0,combineImgHeight=0;
+	if (isVertical)
+	{//纵向合成
+		combineImgWidth=(hImg1Width>hImg2Width)?hImg1Width:hImg2Width;
+		combineImgHeight=hImg1Height+hImg2Height+space;
+	}
+	else
+	{//横向合成
+		combineImgWidth=hImg1Width+hImg2Width+space;
+		combineImgHeight=(hImg1Height>hImg2Height)?hImg1Height:hImg2Height;
+	}
+	combineImg = EloamGlobal_CreateImage(combineImgWidth, combineImgHeight, 3);//创建合成图片
+	if (NULL==combineImg)
+	{//创建合并图片失败
+		return combineImg;
+	}
+	HELOAMRECT rectSrc1=EloamGlobal_CreateRect(0,0,hImg1Width,hImg1Height);
+	HELOAMRECT rectSrc2 = EloamGlobal_CreateRect(0, 0, hImg2Width, hImg2Height);
+	HELOAMRECT rectDest1 = EloamGlobal_CreateRect(0, 0, hImg1Width, hImg1Height);
+	HELOAMRECT rectDest2=isVertical?EloamGlobal_CreateRect(0, hImg1Height+space, hImg2Width, hImg2Height)
+		:EloamGlobal_CreateRect(hImg1Width+space, 0, hImg2Width, hImg2Height);
+	//合成
+	EloamImage_Blend(combineImg, rectDest1, hImg1, rectSrc1, 0, 0);
+	EloamImage_Blend(combineImg, rectDest2, hImg2, rectSrc2, 0, 0);
+	//释放合成区域
+	EloamRect_Release(rectDest1);
+	EloamRect_Release(rectSrc1);
+	EloamRect_Release(rectDest2);
+	EloamRect_Release(rectSrc2);
+	return combineImg;
+}
 
 void EloamPrint::A4IDCardCombineProcess(HELOAMIMAGE hImg,QString imgPath)
 {	

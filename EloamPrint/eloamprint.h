@@ -50,6 +50,8 @@ private:
 	void InitExposure();
 	//生成打印图片
 	HELOAMIMAGE GeneratePrintImage(HELOAMIMAGE hInputImg,PrintSize printSize);
+	//图片合成 hImg1=合成的第一张图片;hImg2=合成的第二张图片;space=合成图片时的间距;isVertical=是否垂直排列
+	HELOAMIMAGE ImageCombine(HELOAMIMAGE* hImg1,HELOAMIMAGE* hImg2,int space=0,bool isVertical=true);
 	//打开视频
 	void OpenVideo();
 	
