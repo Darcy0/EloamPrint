@@ -1,17 +1,32 @@
-﻿生成启动时间为 2018/3/30 16:35:21。
+﻿生成启动时间为 2018/3/30 18:01:43。
      1>项目“E:\work\EloamPrint\EloamPrint\EloamPrint.vcxproj”在节点 2 上(build 个目标)。
      1>InitializeBuildStatus:
          正在创建“Debug\EloamPrint.unsuccessfulbuild”，因为已指定“AlwaysCreate”。
        CustomBuild:
          所有输出均为最新。
        ClCompile:
-         所有输出均为最新。
+         D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\CL.exe /c /I.\GeneratedFiles /I. /ID:\Qt\Qt5.2.0\5.2.0\msvc2010_opengl\include /I.\GeneratedFiles\Debug /ID:\Qt\Qt5.2.0\5.2.0\msvc2010_opengl\include\QtCore /ID:\Qt\Qt5.2.0\5.2.0\msvc2010_opengl\include\QtGui /ID:\Qt\Qt5.2.0\5.2.0\msvc2010_opengl\include\QtWidgets /Zi /nologo /W1 /WX- /Od /Oy- /D UNICODE /D WIN32 /D WIN64 /D QT_DLL /D QT_CORE_LIB /D QT_GUI_LIB /D QT_WIDGETS_LIB /D _UNICODE /D UNICODE /Gm- /EHsc /MDd /GS /fp:precise /Zc:wchar_t /Zc:forScope /Fo"Debug\\" /Fd"Debug\vc100.pdb" /Gd /TP /analyze- /errorReport:prompt EloamPrint.cpp
+         EloamPrint.cpp
          所有输出均为最新。
        ResourceCompile:
          所有输出均为最新。
        Link:
-         所有输出均为最新。
+         D:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"E:\work\EloamPrint\Win32\Debug\\EloamPrint.exe" /INCREMENTAL:NO /NOLOGO /LIBPATH:D:\Qt\Qt5.2.0\5.2.0\msvc2010_opengl\lib /LIBPATH:"C:\Program Files (x86)\Visual Leak Detector\lib\Win32" qtmaind.lib Qt5Cored.lib Qt5Guid.lib Qt5Multimediad.lib Qt5MultimediaWidgetsd.lib Qt5Qmld.lib Qt5Quickd.lib Qt5Sqld.lib Qt5Testd.lib Qt5WebKitd.lib Qt5AxContainerd.lib Qt5AxBased.lib Qt5Helpd.lib Qt5OpenGLd.lib opengl32.lib glu32.lib Qt5PrintSupportd.lib Qt5Scriptd.lib Qt5Sensorsd.lib Qt5Svgd.lib Qt5WebkitWidgetsd.lib Qt5Widgetsd.lib Qt5Xmld.lib Qt5XmlPatternsd.lib Qt5AxBase.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\EloamPrint.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"E:\work\EloamPrint\Win32\Debug\EloamPrint.pdb" /SUBSYSTEM:WINDOWS /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"E:\work\EloamPrint\Win32\Debug\EloamPrint.lib" /MACHINE:X86 Debug\EloamPrint.res
+         Debug\EloamPrint.obj
+         Debug\moc_EloamPrint.obj
+         Debug\moc_PrintConfig.obj
+         Debug\qrc_eloamprint.obj
+         Debug\language.obj
+         Debug\tinystr.obj
+         Debug\tinyxml.obj
+         Debug\tinyxmlerror.obj
+         Debug\tinyxmlparser.obj
+         Debug\main.obj
+         Debug\PrintConfig.obj
+         Debug\translate.obj
          EloamPrint.vcxproj -> E:\work\EloamPrint\Win32\Debug\EloamPrint.exe
+       Manifest:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"E:\work\EloamPrint\Win32\Debug\\EloamPrint.exe;#1" /manifest Debug\EloamPrint.exe.intermediate.manifest
        FinalizeBuildStatus:
          正在删除文件“Debug\EloamPrint.unsuccessfulbuild”。
          正在对“Debug\EloamPrint.lastbuildstate”执行 Touch 任务。
@@ -19,4 +34,4 @@
 
 生成成功。
 
-已用时间 00:00:00.09
+已用时间 00:00:02.70

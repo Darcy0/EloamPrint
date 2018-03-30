@@ -108,8 +108,15 @@ private:
 	int m_A3Width;                              //A3纸张的像素宽
 	int m_A3Height;								//A3纸张的像素高
 
-	int m_A4DefDpi;								//默认的A4DPI出厂设置
 	int m_A3DefDpi;								//默认的A3DPI出厂设置
+	int m_A4DefDpi;								//默认的A4DPI出厂设置
+	
+	//int m_A4WidthDef;							//默认A4高度，A4纸宽度
+	//int m_A4HeightDef;							//默认A4高度，A4纸高度
+	//int m_A3WidthDef;							//默认A4高度，A3纸宽度
+	//int m_A3HeightDef;							//默认A4高度，A3纸高度
+
+
 	int m_A4HA4WidthDef;						//默认A4高度，A4纸宽度
 	int m_A4HA4HeightDef;						//默认A4高度，A4纸高度
 	int m_A4HA3WidthDef;						//默认A4高度，A3纸宽度
@@ -120,7 +127,9 @@ private:
 	int m_A3HA3HeightDef;						//默认A3高度，A3纸高度
 	
 		
-	QString m_sShowResultImagePath;//保存路径
+	QString m_sPrintPreviewOriImagePath;		//打印预览原始图像路径
+	HELOAMIMAGE m_hPrintPreviewShowImage;		//用于显示二值化效果的图片对象
+	
 	QString m_sCutImagePath;
 	
 	HELOAMDEVICE m_hMainDev;					//主头当前设备
@@ -128,10 +137,5 @@ private:
 	HELOAMVIDEO m_hMainVideo;					//主视频
 	HELOAMVIEW m_hMainView;						//主视频窗口的画面  
 	HELOAMTHUMBNAIL m_hThumbPrint;              //打印窗口的缩略图句柄	
-	
-	HELOAMIMAGE m_hPrintImage;					//打印窗口的图片句柄
-	HELOAMRECT m_hCutRect;						//裁剪区域的句柄
-	HELOAMIMAGE m_hCutImage;
-	HELOAMIMAGE m_hShowResultImage;				//用于显示二值化效果的图片对象
 };
 #endif // ELOAMPRINT_H
